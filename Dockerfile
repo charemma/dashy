@@ -26,7 +26,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY README.md ./
 COPY src/ ./src/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev && \
+    uv pip install --no-deps .
 
 
 FROM python:3.12-slim AS runtime
