@@ -111,7 +111,7 @@ def test_dashboard_displays_all_data() -> None:
     assert "1. EU agrees on new AI regulation" in output
     assert "2. Champions League results" in output
     assert "3. Greek economy grows 2.3%" in output
-    assert "07 May 2026" in output
+    assert "07 May 2026 08:30" in output
 
 
 def test_dashboard_handles_ip_failure() -> None:
@@ -170,10 +170,10 @@ def test_dashboard_handles_total_failure() -> None:
 
     assert "unavailable" in output
     assert "No headlines available" in output
-    assert "07 May 2026" in output
+    assert "07 May 2026 08:30" in output
 
 
-def test_dashboard_shows_current_date() -> None:
+def test_dashboard_shows_current_date_and_time() -> None:
     timestamp = datetime(2026, 12, 24, 9, 0, 0)
     data = DashboardData(
         ip_info=_ip(),
@@ -185,6 +185,23 @@ def test_dashboard_shows_current_date() -> None:
     output = _render_to_string(data)
 
     assert "24 Dec 2026" in output
+    assert "09:00" in output
+    assert "24 Dec 2026 09:00" in output
+
+
+def test_dashboard_renders_time_with_evening_timestamp() -> None:
+    """Late timestamps render as zero-padded 24h time."""
+    timestamp = datetime(2026, 5, 7, 23, 5, 0)
+    data = DashboardData(
+        ip_info=_ip(),
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=timestamp,
+    )
+
+    output = _render_to_string(data)
+
+    assert "07 May 2026 23:05" in output
 
 
 def test_fetch_dashboard_data_skips_weather_when_ip_fails(

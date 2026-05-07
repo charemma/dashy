@@ -18,7 +18,7 @@ from dashy.news import get_headlines
 from dashy.weather import get_weather
 
 _UNAVAILABLE = "[dim]unavailable[/dim]"
-_DATE_FORMAT = "%d %b %Y"
+_DATETIME_FORMAT = "%d %b %Y %H:%M"
 _PANEL_BORDER_STYLE = "cyan"
 
 
@@ -51,13 +51,13 @@ def fetch_dashboard_data() -> DashboardData:
 
 
 def _render_header(timestamp: datetime) -> Text:
-    """Build the header line: app name on the left, date on the right."""
+    """Build the header line: app name on the left, date and time on the right."""
     header = Text()
     header.append("dashy", style="bold cyan")
     header.append("  ")
     header.append("morning briefing", style="dim")
     header.append("    ")
-    header.append(timestamp.strftime(_DATE_FORMAT), style="bold white")
+    header.append(timestamp.strftime(_DATETIME_FORMAT), style="bold white")
     return header
 
 
