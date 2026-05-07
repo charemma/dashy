@@ -1,64 +1,110 @@
-# dashy -- kuromaku demo project
+# dashy
 
-This repo demonstrates how [kuromaku](https://github.com/nestrai/kuromaku) (not yet published) works. An AI agent team builds a Python CLI tool from nothing but GitHub issues. No human writes code -- the agents design, implement, test, review, and open PRs autonomously.
+A morning briefing CLI built entirely by AI agents -- demonstrating [kuromaku](https://github.com/nestrai/kuromaku) (not yet published).
 
-The tool being built (`dashy`) is secondary. The point is the process: file an issue, run the workflow, get a PR.
+dashy itself is a small Python tool that fetches your IP, weather, and headlines. The interesting part is how it was built: a human filed GitHub issues, kuromaku's agent team designed, implemented, tested, and reviewed everything autonomously. The human reviews PRs and merges.
 
-## How it works
-
-1. A human creates a GitHub issue describing what to build
-2. `kuro run implement-issue --var id=<issue>` starts the workflow
-3. The agent team works through a graph flow:
-
-```
-design (Mara, architect)
-  -> implement (Sven, developer)
-    -> verify (shell: just lint && just test)
-      -> review (Priya, reviewer on OpenAI Codex)
-        -> open draft PR
-```
-
-Each step feeds its output to the next. If verify fails, it loops back to implement. If review finds problems, it sends the code back. The graph handles all the routing -- the human just files issues and reviews PRs.
-
-## What is kuromaku?
-
-A CLI tool for reproducible AI agent teams. You define your team in YAML or Markdown, write rules they follow, and run workflows that turn issues into PRs. Think of it as CI/CD for AI-assisted development.
-
-## Repo structure
-
-```
-.kuro/                    -- this is all kuromaku needs
-  agents/                 -- who is on the team
-    Mara.yaml             -- architect (Claude)
-    Sven.yaml             -- developer (Claude)
-    Priya.yaml            -- reviewer (OpenAI Codex)
-  flows/                  -- how they work together
-    implement-issue.md    -- the graph flow in Markdown format
-  rules/                  -- what rules they follow
-    python-style.md       -- Python conventions for this project
-    git-workflow.md       -- branching and commit rules
-```
-
-Everything under `src/`, `tests/`, `pyproject.toml`, `justfile`, etc. is created by the agents through issues.
-
-## The demo tool
-
-`dashy` is a morning briefing CLI that fetches live data from REST APIs:
+## The tool
 
 ```
 $ dashy
 
-  Location    Athens, GR (203.0.113.42)
+  dashy  morning briefing    07 May 2026 12:30
 
-  Weather     24C sunny, Wind 12 km/h NW
+  Location               Weather
+  Thessaloniki, GR       20C  Partly cloudy
+  79.103.140.20          Wind 4 km/h W, Humidity 52%
 
   Headlines
-    EU agrees on new AI regulation framework
-    Champions League semifinal results
+  1. Hantavirus-hit cruise ship on way to Canary Islands
+  2. Iran considering US proposal as Trump says war will be 'over quickly'
+  3. Islamic State-linked women arrive home in Australia from Syria
 ```
 
-Three API calls, no keys needed (ipinfo.io, wttr.in, RSS feed), displayed with rich terminal formatting.
+Three API calls (ipinfo.io, wttr.in, BBC RSS), no keys needed.
+
+## How it was built
+
+The `.kuro/` directory defines the team and the workflow. kuromaku does the rest.
+
+```
+.kuro/
+  agents/
+    Mara.yaml       -- architect (Claude Sonnet)
+    Sven.yaml       -- developer (Claude Opus)
+    Priya.yaml      -- reviewer (OpenAI)
+  flows/
+    implement-issue.yaml   -- the graph workflow
+  rules/
+    python-style.md        -- conventions the agents follow
+```
+
+The workflow is a graph. Each step either succeeds and moves forward, or gets sent back:
+
+```yaml
+# simplified from .kuro/flows/implement-issue.yaml
+graph:
+  design:
+    role: architect
+    next:
+      - implement: "plan complete"
+
+  implement:
+    role: developer
+    next:
+      - verify: "implementation complete"
+      - design: "design flaw found"
+
+  verify:
+    run: just lint && just test
+    next:
+      - review: pass
+      - implement: fail          # failed checks -> back to developer
+
+  review:
+    role: reviewer
+    next:
+      - pr: "approved"
+      - implement: "changes needed"  # reviewer can send it back
+```
+
+## Example: building the weather module
+
+```
+$ kuro run implement-issue --var id=4
+
+  [design]     Mara    1m53s   -> implement    plan complete
+  [implement]  Sven    2m16s   -> verify       implementation complete
+  [verify]     shell   2.0s    -> review       exit 0
+  [review]     Priya   1m46s   -> implement    architecture violations found
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  [implement]  Sven    2m44s   -> verify       fixed
+  [verify]     shell   3.8s    -> review       exit 0
+  [review]     Priya   1m11s   -> pr           approved
+  [pr]         Sven    31.2s   -> done         PR #15 opened
+
+  flow complete   8 steps   10m29s
+```
+
+Priya sent Sven back because he built his own HTTP client instead of using the shared one from the architecture doc. He fixed it, second review passed. No human typed anything between `kuro run` and `PR opened`.
+
+The human's role: file issues, review the PR, merge. The agents handle design, code, tests, and review.
+
+## Good to know
+
+- **Verify is deterministic**: exit 0 passes, anything else sends the error output back to the developer. No LLM guessing.
+- **Review loops have limits**: if the reviewer keeps rejecting, the flow stops and you get the full transcript.
+- **Multi-provider**: Mara and Sven run on Claude (Anthropic), Priya runs on OpenAI. The workflow is provider-agnostic.
+- **The graph self-heals**: review findings, lint failures, test failures all route back to the developer automatically. The graph handles retry logic.
+
+## Setup
+
+```bash
+nix develop          # enter dev shell (provides python, uv, ruff, mypy, just)
+uv sync              # install Python dependencies
+dashy                # run the tool
+```
 
 ## Issues
 
-See the [issue list](../../issues) for the build plan. Each issue is a self-contained unit of work that the agent team picks up and delivers as a PR.
+See the [issue list](../../issues) for the full build plan.
