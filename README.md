@@ -14,22 +14,22 @@ docker run --rm ghcr.io/charemma/dashy
 ```
 
 ```
-dashy  ·  07 May 2026 12:55
+dashy  ·  07 May 2026 14:52
 
-Thessaloniki, GR                                        ⛅  21°C  Partly cloudy
-Central Macedonia                                    7 km/h S  ·  49% humidity
-79.103.140.20
+Nurnberg, DE                                 🌧️  11°C  Light rain, rain shower
+Bavaria                                           12 km/h WSW  ·  82% humidity
+178.104.46.204
 
 Headlines
 
-  1  Hantavirus-hit cruise ship on way to Canary Islands after three evacuated
-  2  Iran considering US proposal as Trump says war will be 'over quickly'
-  3  Islamic State-linked women arrive home in Australia from Syria
-  4  Shell latest oil giant to see profits surge due to Iran war impact
-  5  Israel strikes Beirut for first time since Hezbollah ceasefire
+  1  Umfrage zur Landtagswahl: AfD legt in Sachsen-Anhalt auf 41 Prozent zu
+  2  Hantavirus: WHO sucht verzweifelt nach Passagieren eines Fluges
+  3  Wirbel um Einwanderungs-Satz von Barbel Bas
+  4  Sparkassen-Kunden fordern Schadenersatz nach Schliessfacheinbruch
+  5  Umweltminister glaubt an Uberleben von Timmy - doch Belege fehlen
 ```
 
-Three API calls (ipinfo.io, wttr.in, BBC RSS), no keys needed.
+Three API calls (ipinfo.io, wttr.in, Google News RSS), no keys needed. Headlines are localized by detected country.
 
 ## How it was built
 
