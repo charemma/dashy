@@ -19,6 +19,7 @@ from dashy.cli import (
 from dashy.models import IPInfo, Weather
 
 _FIXED_NOW = datetime(2026, 5, 7, 8, 30, 0)
+_BOX_CHARS = "\u256d\u2500\u256e\u2502\u2570\u256f\u2571\u2572\u2573"
 
 
 def _ip() -> IPInfo:
@@ -103,14 +104,15 @@ def test_dashboard_displays_all_data() -> None:
     output = _render_to_string(data)
 
     assert "Athens, GR" in output
+    assert "Attica" in output
     assert "203.0.113.42" in output
     assert "19" in output
     assert "Light rain" in output
     assert "9 km/h SSE" in output
-    assert "Humidity 100%" in output
-    assert "1. EU agrees on new AI regulation" in output
-    assert "2. Champions League results" in output
-    assert "3. Greek economy grows 2.3%" in output
+    assert "100% humidity" in output
+    assert "  1  EU agrees on new AI regulation" in output
+    assert "  2  Champions League results" in output
+    assert "  3  Greek economy grows 2.3%" in output
     assert "07 May 2026 08:30" in output
 
 
@@ -124,8 +126,9 @@ def test_dashboard_handles_ip_failure() -> None:
 
     output = _render_to_string(data)
 
-    assert "unavailable" in output
-    assert "1. EU agrees on new AI regulation" in output
+    assert "Unknown location" in output
+    assert "Weather unavailable" in output
+    assert "  1  EU agrees on new AI regulation" in output
 
 
 def test_dashboard_handles_weather_failure() -> None:
@@ -139,8 +142,8 @@ def test_dashboard_handles_weather_failure() -> None:
     output = _render_to_string(data)
 
     assert "Athens, GR" in output
-    assert "unavailable" in output
-    assert "1. EU agrees on new AI regulation" in output
+    assert "Weather unavailable" in output
+    assert "  1  EU agrees on new AI regulation" in output
 
 
 def test_dashboard_handles_headlines_failure() -> None:
@@ -168,7 +171,8 @@ def test_dashboard_handles_total_failure() -> None:
 
     output = _render_to_string(data)
 
-    assert "unavailable" in output
+    assert "Unknown location" in output
+    assert "Weather unavailable" in output
     assert "No headlines available" in output
     assert "07 May 2026 08:30" in output
 
@@ -330,7 +334,8 @@ def test_cli_does_not_crash_when_all_sources_fail(monkeypatch: pytest.MonkeyPatc
     result = runner.invoke(main, [])
 
     assert result.exit_code == 0, result.output
-    assert "unavailable" in result.output
+    assert "Unknown location" in result.output
+    assert "Weather unavailable" in result.output
     assert "No headlines available" in result.output
 
 
@@ -346,7 +351,7 @@ def test_dashboard_caps_at_module_max_headlines() -> None:
     output = _render_to_string(data)
 
     for i in range(1, 6):
-        assert f"{i}. Headline {i}" in output
+        assert f"  {i}  Headline {i}" in output
 
 
 def test_render_dashboard_returns_none() -> None:
@@ -362,3 +367,134 @@ def test_render_dashboard_returns_none() -> None:
     result: Any = render_dashboard(data, console)
 
     assert result is None
+
+
+# --- New tests for the redesigned UI -----------------------------------
+
+
+@pytest.mark.parametrize(
+    "condition, expected",
+    [
+        ("Clear sky", "\u2600\ufe0f"),
+        ("Sunny", "\u2600\ufe0f"),
+        ("Partly cloudy", "\u26c5"),
+        ("Scattered clouds", "\u26c5"),
+        ("Light rain", "\U0001f327\ufe0f"),
+        ("Drizzle", "\U0001f327\ufe0f"),
+        ("Heavy snow", "\u2744\ufe0f"),
+        ("Thunderstorm", "\u26c8\ufe0f"),
+        ("Storm warning", "\u26c8\ufe0f"),
+        ("Fog", "\U0001f32b\ufe0f"),
+        ("Mist", "\U0001f32b\ufe0f"),
+        ("Cloudy", "\u2601\ufe0f"),
+        ("Overcast", "\u2601\ufe0f"),
+        ("", "\U0001f321\ufe0f"),
+        ("Tornado", "\U0001f321\ufe0f"),
+    ],
+)
+def test_weather_icon_mapping(condition: str, expected: str) -> None:
+    """``_weather_icon`` maps known condition keywords to Unicode icons."""
+    assert cli._weather_icon(condition) == expected
+
+
+def test_weather_icon_is_case_insensitive() -> None:
+    assert cli._weather_icon("PARTLY CLOUDY") == "\u26c5"
+    assert cli._weather_icon("Light Rain") == "\U0001f327\ufe0f"
+
+
+def test_weather_icon_picks_specific_match_first() -> None:
+    """A 'partly cloudy' string matches the partly-cloudy icon, not the
+    bare cloud icon -- specific matches win.
+    """
+    assert cli._weather_icon("Partly cloudy") == "\u26c5"
+
+
+def test_header_format_has_no_morning_briefing_text() -> None:
+    timestamp = datetime(2026, 5, 7, 12, 35, 0)
+    data = DashboardData(
+        ip_info=_ip(),
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=timestamp,
+    )
+
+    output = _render_to_string(data)
+
+    assert "morning briefing" not in output
+    assert "dashy  \u00b7  07 May 2026 12:35" in output
+
+
+def test_dashboard_has_no_panel_borders() -> None:
+    """No box-drawing characters should appear -- the redesign is panel-free."""
+    data = DashboardData(
+        ip_info=_ip(),
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=_FIXED_NOW,
+    )
+
+    output = _render_to_string(data)
+
+    for char in _BOX_CHARS:
+        assert char not in output, f"Unexpected box-drawing character {char!r} in output"
+
+
+def test_dashboard_renders_weather_icon_in_output() -> None:
+    data = DashboardData(
+        ip_info=_ip(),
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=_FIXED_NOW,
+    )
+
+    output = _render_to_string(data)
+
+    assert "\U0001f327\ufe0f" in output  # rain icon for "Light rain"
+
+
+def test_location_and_weather_share_first_line() -> None:
+    """City and the weather summary must end up on the same row."""
+    data = DashboardData(
+        ip_info=_ip(),
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=_FIXED_NOW,
+    )
+
+    output = _render_to_string(data)
+    lines = output.splitlines()
+
+    matching = [line for line in lines if "Athens, GR" in line]
+    assert matching, "Expected a line containing the city"
+    first = matching[0]
+    assert "Light rain" in first, f"Weather should share the city line: {first!r}"
+    assert "19\u00b0C" in first
+
+
+def test_region_skipped_when_equal_to_city() -> None:
+    ip = IPInfo(ip="198.51.100.7", city="Berlin", region="Berlin", country="DE")
+    data = DashboardData(
+        ip_info=ip,
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=_FIXED_NOW,
+    )
+
+    output = _render_to_string(data)
+    lines = [line for line in output.splitlines() if line.strip() == "Berlin"]
+    assert lines == []
+
+
+def test_headlines_use_two_space_indent() -> None:
+    data = DashboardData(
+        ip_info=_ip(),
+        weather=_weather(),
+        headlines=_headlines(),
+        timestamp=_FIXED_NOW,
+    )
+
+    output = _render_to_string(data)
+    lines = output.splitlines()
+
+    assert "Headlines" in [line.strip() for line in lines]
+    assert any(line.startswith("  1  EU agrees on new AI regulation") for line in lines)
