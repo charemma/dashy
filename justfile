@@ -1,3 +1,5 @@
+venv := ".venv"
+
 default:
     @just --list
 
@@ -5,12 +7,12 @@ install:
     uv sync
 
 lint:
-    uv run ruff check .
-    uv run mypy src/
+    {{venv}}/bin/ruff check .
+    {{venv}}/bin/mypy src/
 
 fmt:
-    uv run ruff format .
-    uv run ruff check --fix .
+    {{venv}}/bin/ruff format .
+    {{venv}}/bin/ruff check --fix .
 
 test:
-    uv run pytest
+    {{venv}}/bin/pytest
