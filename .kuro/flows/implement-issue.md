@@ -36,7 +36,7 @@ new behavior. Commit with conventional commit messages.
 ---
 
 ## verify
-*run: just lint && just test*
+*run: nix develop --command sh -c "just lint && just test"*
 
 -> review: pass
 -> implement: fail
