@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+Headlines = list[str]
+"""A list of news headline titles. See ``dashy.news.get_headlines``."""
+
 
 @dataclass(frozen=True)
 class Weather:
