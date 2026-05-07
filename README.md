@@ -2,41 +2,52 @@
 
 A morning briefing CLI built entirely by AI agents -- demonstrating [kuromaku](https://github.com/nestrai/kuromaku) (not yet published).
 
-dashy itself is a small Python tool that fetches your IP, weather, and headlines. The interesting part is how it was built: a human filed GitHub issues, kuromaku's agent team designed, implemented, tested, and reviewed everything autonomously. The human reviews PRs and merges.
+dashy itself is a small Python tool that fetches your IP, weather, and headlines. The interesting part is how it was built: a human filed GitHub issues, kuromaku's agent team designed, implemented, tested, and reviewed everything autonomously. The human reviews PRs and merges -- that is the only manual step.
 
-## The tool
+> Every line of application code in this repo was written, tested, and reviewed by AI agents.
+> The human's job: file issues, review PRs, merge.
+
+## Try it
+
+```bash
+docker run --rm ghcr.io/charemma/dashy
+```
 
 ```
-$ dashy
+dashy  ·  07 May 2026 12:55
 
-  dashy  morning briefing    07 May 2026 12:30
+Thessaloniki, GR                                        ⛅  21°C  Partly cloudy
+Central Macedonia                                    7 km/h S  ·  49% humidity
+79.103.140.20
 
-  Location               Weather
-  Thessaloniki, GR       20C  Partly cloudy
-  79.103.140.20          Wind 4 km/h W, Humidity 52%
+Headlines
 
-  Headlines
-  1. Hantavirus-hit cruise ship on way to Canary Islands
-  2. Iran considering US proposal as Trump says war will be 'over quickly'
-  3. Islamic State-linked women arrive home in Australia from Syria
+  1  Hantavirus-hit cruise ship on way to Canary Islands after three evacuated
+  2  Iran considering US proposal as Trump says war will be 'over quickly'
+  3  Islamic State-linked women arrive home in Australia from Syria
+  4  Shell latest oil giant to see profits surge due to Iran war impact
+  5  Israel strikes Beirut for first time since Hezbollah ceasefire
 ```
 
 Three API calls (ipinfo.io, wttr.in, BBC RSS), no keys needed.
 
 ## How it was built
 
-The `.kuro/` directory defines the team and the workflow. kuromaku does the rest.
+The `.kuro/` directory defines the team, the rules, and the workflow. kuromaku does the rest.
 
 ```
 .kuro/
   agents/
     Mara.yaml       -- architect (Claude Sonnet)
     Sven.yaml       -- developer (Claude Opus)
-    Priya.yaml      -- reviewer (OpenAI)
+    Priya.yaml      -- reviewer (Claude Opus)
+    Luna.yaml       -- UX/CLI designer (Claude Sonnet)
   flows/
     implement-issue.yaml   -- the graph workflow
   rules/
-    python-style.md        -- conventions the agents follow
+    python-style.md        -- Python conventions (type hints, error handling, dependencies)
+    clean-code.md          -- design principles (SRP, no magic, fail gracefully)
+    git-workflow.md        -- branching and commit rules
 ```
 
 The workflow is a graph. Each step either succeeds and moves forward, or gets sent back:
@@ -88,21 +99,35 @@ $ kuro run implement-issue --var id=4
 
 Priya sent Sven back because he built his own HTTP client instead of using the shared one from the architecture doc. He fixed it, second review passed. No human typed anything between `kuro run` and `PR opened`.
 
-The human's role: file issues, review the PR, merge. The agents handle design, code, tests, and review.
-
 ## Good to know
 
 - **Verify is deterministic**: exit 0 passes, anything else sends the error output back to the developer. No LLM guessing.
 - **Review loops have limits**: if the reviewer keeps rejecting, the flow stops and you get the full transcript.
-- **Multi-provider**: Mara and Sven run on Claude (Anthropic), Priya runs on OpenAI. The workflow is provider-agnostic.
-- **The graph self-heals**: review findings, lint failures, test failures all route back to the developer automatically. The graph handles retry logic.
+- **Multi-provider**: agents can run on different LLM providers (Claude, OpenAI, etc.). The workflow is provider-agnostic.
+- **The graph self-heals**: review findings, lint failures, test failures all route back to the developer automatically.
+- **Rules control quality**: each agent is bound to project rules (python-style.md, clean-code.md). The rules are injected into every prompt. Change the rules, change the output.
 
-## Setup
+## Local setup
 
 ```bash
 nix develop          # enter dev shell (provides python, uv, ruff, mypy, just)
 uv sync              # install Python dependencies
 dashy                # run the tool
+```
+
+Or build the Docker image locally:
+
+```bash
+docker build -t dashy .
+docker run --rm dashy
+```
+
+## Release
+
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+# CI builds and pushes ghcr.io/charemma/dashy:v0.1.1 + :latest
 ```
 
 ## Issues
