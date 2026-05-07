@@ -74,17 +74,19 @@ class Weather:
     wind_direction: str
     humidity_percent: int
 
-@dataclass(frozen=True)
-class Headline:
-    title: str
-
-Headlines = list[Headline]
+Headlines = list[str]
 ```
 
-Field names are explicit (`temperature_c`, not `temp`). Models are frozen so
-callers cannot mutate them by accident. Anything richer (links, timestamps,
-icons) is added later by extending the dataclass, not by changing the call
-sites.
+News is the odd one out: a headline is a single string (the title), so the
+"model" is just a list of strings rather than a dataclass. This matches the
+contract in issue #5 -- title only, no extra fields. If we later need links or
+timestamps, we promote `Headlines` to `list[Headline]` with a frozen dataclass
+and update the renderer in one place.
+
+Field names on the dataclasses are explicit (`temperature_c`, not `temp`).
+Models are frozen so callers cannot mutate them by accident. Anything richer
+(weather icons, IP ASN data) is added later by extending the dataclass, not by
+changing the call sites.
 
 ## Module interfaces
 
@@ -98,6 +100,7 @@ def get_ip_info() -> IPInfo | None: ...
 def get_weather(city: str) -> Weather | None: ...
 
 # dashy.news
+# Returns at most 5 titles; empty list on any failure or empty feed.
 def get_headlines(feed_url: str | None = None) -> Headlines: ...
 ```
 
@@ -182,6 +185,8 @@ class StockQuote:
 Create `src/dashy/stocks.py`:
 
 ```python
+import httpx
+
 from dashy.http import create_http_client
 from dashy.models import StockQuote
 
