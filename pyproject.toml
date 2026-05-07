@@ -1,0 +1,68 @@
+[project]
+name = "dashy"
+version = "0.1.0"
+description = "A morning briefing CLI that fetches and displays live data in the terminal"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Charalambos Emmanouilidis" },
+]
+license = { text = "MIT" }
+dependencies = [
+    "click>=8.1",
+    "httpx>=0.27",
+    "rich>=13.7",
+]
+
+[project.scripts]
+dashy = "dashy.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.10",
+    "pytest>=8.2",
+    "respx>=0.21",
+    "ruff>=0.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dashy"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]  # allow asserts in tests
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+explicit_package_bases = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+testpaths = ["tests"]
+pythonpath = ["src"]
