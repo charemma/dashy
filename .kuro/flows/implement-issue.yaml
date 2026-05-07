@@ -1,0 +1,62 @@
+version: "1"
+name: implement-issue
+prompt: |
+  Implement issue #{{vars.id}} in this repository.
+  Follow the project rules and produce a draft PR at the end.
+
+initial: design
+
+graph:
+  design:
+    role: architect
+    task: |
+      Read issue #{{vars.id}} (`gh issue view {{vars.id}} --comments`).
+      Produce a short design plan: affected files, interfaces, edge
+      cases, and testing strategy. Do not write code.
+    next:
+      - implement: "plan complete, ready to build"
+      - aborted: "missing context, cannot plan"
+
+  implement:
+    role: developer
+    task: |
+      Implement the design from the previous step. Write clean,
+      idiomatic Python with type hints. Add tests that cover the
+      new behavior. Commit with conventional commit messages.
+    next:
+      - verify: "implementation complete, run checks"
+      - design: "design flaw discovered during implementation"
+      - aborted: "cannot proceed safely"
+
+  verify:
+    run: nix develop --command sh -c "just lint && just test"
+    next:
+      - review: pass
+      - implement: fail
+
+  review:
+    role: reviewer
+    task: |
+      Review the implementation against the issue's acceptance
+      criteria. Check that tests cover the behavior and the code
+      is clean. If something is off, send it back.
+    next:
+      - pr: "all criteria met, code quality acceptable"
+      - implement: "changes needed"
+      - design: "wrong approach, needs redesign"
+      - aborted: "review cannot complete"
+
+  pr:
+    role: developer
+    task: |
+      Push the branch and open a draft PR with `Closes #{{vars.id}}`.
+      Output the PR URL on its own line.
+    next:
+      - done: "PR opened"
+      - aborted: "PR creation failed"
+
+  done:
+    final: "implementation reviewed, draft PR is open"
+
+  aborted:
+    final: "a step could not proceed safely"
