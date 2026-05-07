@@ -4,18 +4,18 @@ default:
 
 # Lint code with ruff and mypy
 lint:
-    ruff check .
-    mypy src/
+    .venv/bin/ruff check .
+    .venv/bin/mypy src/
 
 # Format code with ruff
 fmt:
-    ruff format .
-    ruff check --fix .
+    .venv/bin/ruff format .
+    .venv/bin/ruff check --fix .
 
 # Run tests with pytest
 test:
-    pytest
+    .venv/bin/pytest
 
 # Sync dependencies with uv
 sync:
-    uv sync
+    uv sync --all-extras
