@@ -1,50 +1,64 @@
-# dashy -- morning briefing CLI
+# dashy -- kuromaku demo project
 
-Demo project showing how [kuromaku](https://github.com/nestrai/kuromaku) orchestrates an AI agent team to build software from GitHub issues.
+This repo demonstrates how [kuromaku](https://github.com/nestrai/kuromaku) (not yet published) works. An AI agent team builds a Python CLI tool from nothing but GitHub issues. No human writes code -- the agents design, implement, test, review, and open PRs autonomously.
 
-## What this demonstrates
+The tool being built (`dashy`) is secondary. The point is the process: file an issue, run the workflow, get a PR.
 
-An AI team (architect, developer, reviewer) builds a Python CLI tool by working through GitHub issues autonomously. Each issue goes through a graph flow:
+## How it works
+
+1. A human creates a GitHub issue describing what to build
+2. `kuro run implement-issue --var id=<issue>` starts the workflow
+3. The agent team works through a graph flow:
 
 ```
-design -> implement -> verify (lint + test) -> review -> PR
+design (Mara, architect)
+  -> implement (Sven, developer)
+    -> verify (shell: just lint && just test)
+      -> review (Priya, reviewer on OpenAI Codex)
+        -> open draft PR
 ```
 
-The team is defined in `.kuro/`, the workflow in `.kuro/flows/`. A human files issues, the agents do the rest.
+Each step feeds its output to the next. If verify fails, it loops back to implement. If review finds problems, it sends the code back. The graph handles all the routing -- the human just files issues and reviews PRs.
 
-## The tool being built
+## What is kuromaku?
 
-`dashy` -- a command-line morning briefing that fetches live data from REST APIs and displays it in the terminal.
+A CLI tool for reproducible AI agent teams. You define your team in YAML or Markdown, write rules they follow, and run workflows that turn issues into PRs. Think of it as CI/CD for AI-assisted development.
+
+## Repo structure
+
+```
+.kuro/                    -- this is all kuromaku needs
+  agents/                 -- who is on the team
+    Mara.yaml             -- architect (Claude)
+    Sven.yaml             -- developer (Claude)
+    Priya.yaml            -- reviewer (OpenAI Codex)
+  flows/                  -- how they work together
+    implement-issue.md    -- the graph flow in Markdown format
+  rules/                  -- what rules they follow
+    python-style.md       -- Python conventions for this project
+    git-workflow.md       -- branching and commit rules
+```
+
+Everything under `src/`, `tests/`, `pyproject.toml`, `justfile`, etc. is created by the agents through issues.
+
+## The demo tool
+
+`dashy` is a morning briefing CLI that fetches live data from REST APIs:
 
 ```
 $ dashy
 
   Location    Athens, GR (203.0.113.42)
 
-  Weather     24C sunny
-              Wind 12 km/h NW, Humidity 45%
+  Weather     24C sunny, Wind 12 km/h NW
 
   Headlines
     EU agrees on new AI regulation framework
     Champions League semifinal results
-    Greek economy grows 2.3% in Q1
 ```
 
-Three data sources, one clean output:
-- **IP geolocation** via ipinfo.io (no API key needed)
-- **Weather** via wttr.in (no API key needed)
-- **News headlines** via a public RSS feed
+Three API calls, no keys needed (ipinfo.io, wttr.in, RSS feed), displayed with rich terminal formatting.
 
-## Project structure
+## Issues
 
-```
-.kuro/
-  agents/       -- agent personas (architect, developer, reviewer)
-  flows/        -- workflow graph (implement-issue)
-  rules/        -- project rules the agents follow
-src/
-  dashy/         -- the Python CLI
-tests/
-justfile        -- task runner (lint, test, fmt)
-pyproject.toml  -- project config
-```
+See the [issue list](../../issues) for the build plan. Each issue is a self-contained unit of work that the agent team picks up and delivers as a PR.
