@@ -56,7 +56,8 @@ def fetch_dashboard_data() -> DashboardData:
     ip_info = get_ip_info()
     city = ip_info.city if ip_info is not None else _resolve_default_city()
     weather = get_weather(city)
-    headlines = get_headlines()
+    country_code = ip_info.country if ip_info is not None else None
+    headlines = get_headlines(country_code)
     return DashboardData(
         ip_info=ip_info,
         weather=weather,
