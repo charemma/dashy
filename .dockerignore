@@ -1,0 +1,34 @@
+# VCS and editor cruft
+.git
+.gitignore
+.github
+.idea
+.vscode
+
+# Python build/test caches
+__pycache__
+*.pyc
+*.pyo
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.venv
+dist
+*.egg-info
+
+# Local dev tooling
+.direnv
+.envrc
+flake.nix
+flake.lock
+result
+.env
+
+# Tests and docs are not needed at runtime
+tests
+docs
+.kuro
+
+# Container artifacts
+Dockerfile
+.dockerignore

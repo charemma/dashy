@@ -23,6 +23,31 @@ $ dashy
 
 Three API calls (ipinfo.io, wttr.in, BBC RSS), no keys needed.
 
+## Docker
+
+A prebuilt image is published to GitHub Container Registry on every release tag.
+
+```bash
+docker run --rm ghcr.io/charemma/dashy
+```
+
+Tags: `latest` plus the released semver (e.g. `v0.1.0`, `0.1.0`).
+
+To cut a release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+# CI runs lint + tests, then builds and pushes the image.
+```
+
+To build the image locally:
+
+```bash
+docker build -t dashy:dev .
+docker run --rm dashy:dev
+```
+
 ## How it was built
 
 The `.kuro/` directory defines the team and the workflow. kuromaku does the rest.
