@@ -1,4 +1,4 @@
-"""News module: fetches headlines from an RSS or Atom feed."""
+"""News module: fetches localized headlines via Google News with BBC fallback."""
 
 from __future__ import annotations
 
@@ -10,22 +10,68 @@ import httpx
 from dashy.http import create_http_client
 from dashy.models import Headlines
 
-_DEFAULT_FEED_URL: Final = "https://feeds.bbci.co.uk/news/world/rss.xml"
+_BBC_FEED_URL: Final = "https://feeds.bbci.co.uk/news/world/rss.xml"
+_GOOGLE_NEWS_BASE_URL: Final = "https://news.google.com/rss"
+_DEFAULT_LANGUAGE: Final = "en"
 _MAX_HEADLINES: Final = 5
 _ATOM_NAMESPACE: Final = "{http://www.w3.org/2005/Atom}"
 
+# ISO 3166-1 alpha-2 country code -> ISO 639-1 language code.
+# Multilingual countries map to their primary/most-common language.
+_COUNTRY_LANGUAGE: Final[dict[str, str]] = {
+    "AT": "de",
+    "BE": "nl",
+    "BR": "pt",
+    "CH": "de",
+    "DE": "de",
+    "ES": "es",
+    "FR": "fr",
+    "GB": "en",
+    "GR": "el",
+    "IE": "en",
+    "IT": "it",
+    "JP": "ja",
+    "NL": "nl",
+    "PL": "pl",
+    "PT": "pt",
+    "SE": "sv",
+    "TR": "tr",
+    "US": "en",
+}
 
-def get_headlines(feed_url: str | None = None) -> Headlines:
-    """Fetch news headlines from an RSS or Atom feed.
 
-    Returns a list of up to five headline titles on success. Returns an
-    empty list on any error (network failure, non-2xx response, malformed
-    XML, empty feed). Never raises.
+def get_headlines(country_code: str | None = None) -> Headlines:
+    """Fetch news headlines localized to ``country_code``.
 
-    If ``feed_url`` is ``None``, a default public feed is used.
+    The country code (ISO 3166-1 alpha-2, e.g. ``"DE"``) is used to build
+    a Google News RSS URL with matching language and edition. If
+    ``country_code`` is ``None`` or Google News cannot be reached, the
+    BBC World feed is used as a fallback.
+
+    Returns a list of up to five headline titles. Returns an empty list
+    only if both Google News and BBC fail. Never raises.
     """
-    url = feed_url if feed_url is not None else _DEFAULT_FEED_URL
+    if country_code is not None:
+        headlines = _fetch_google_news(country_code)
+        if headlines:
+            return headlines
 
+    return _fetch_feed(_BBC_FEED_URL)
+
+
+def _fetch_google_news(country_code: str) -> Headlines:
+    """Fetch headlines from Google News for a country.
+
+    Returns an empty list on any failure (HTTP error, parse error, empty
+    feed). The caller treats an empty result as a signal to fall back.
+    """
+    language = _country_to_language(country_code)
+    url = _build_google_news_url(country_code, language)
+    return _fetch_feed(url)
+
+
+def _fetch_feed(url: str) -> Headlines:
+    """Fetch and parse an RSS or Atom feed. Empty list on any error."""
     with create_http_client() as client:
         try:
             response = client.get(url)
@@ -35,6 +81,23 @@ def get_headlines(feed_url: str | None = None) -> Headlines:
             return []
 
     return _parse_feed(content)
+
+
+def _country_to_language(country_code: str) -> str:
+    """Map an ISO 3166-1 alpha-2 country code to a language code.
+
+    Lookup is case-insensitive. Unknown countries fall back to English.
+    """
+    return _COUNTRY_LANGUAGE.get(country_code.upper(), _DEFAULT_LANGUAGE)
+
+
+def _build_google_news_url(country_code: str, language: str) -> str:
+    """Construct a Google News RSS URL with localization parameters.
+
+    Format: ``https://news.google.com/rss?hl={lang}&gl={CC}&ceid={CC}:{lang}``
+    """
+    cc = country_code.upper()
+    return f"{_GOOGLE_NEWS_BASE_URL}?hl={language}&gl={cc}&ceid={cc}:{language}"
 
 
 def _parse_feed(xml_content: bytes) -> Headlines:

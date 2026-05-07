@@ -77,6 +77,11 @@ graph:
     next:
       - pr: "approved"
       - implement: "changes needed"  # reviewer can send it back
+
+  pr:
+    role: developer
+    next:
+      - done: "PR opened"
 ```
 
 ## Example: building the weather module
