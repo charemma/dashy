@@ -14,3 +14,13 @@ class Weather:
     wind_speed_kmh: int
     wind_direction: str
     humidity_percent: int
+
+
+@dataclass(frozen=True)
+class IPInfo:
+    """Public IP address and geolocation data from ipinfo.io."""
+
+    ip: str
+    city: str
+    region: str
+    country: str
