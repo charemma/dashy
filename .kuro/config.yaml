@@ -1,4 +1,12 @@
+version: "1"
+
+seeds:
+  - path: .kuro/
+
 roles:
-  architect: Mara
-  developer: Sven
-  reviewer: Priya
+  architect:
+    agent: Mara
+  developer:
+    agent: Sven
+  reviewer:
+    agent: Priya
