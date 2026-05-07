@@ -1,4 +1,4 @@
-# dash -- morning briefing CLI
+# dashy -- morning briefing CLI
 
 Demo project showing how [kuromaku](https://github.com/nestrai/kuromaku) orchestrates an AI agent team to build software from GitHub issues.
 
@@ -14,10 +14,10 @@ The team is defined in `.kuro/`, the workflow in `.kuro/flows/`. A human files i
 
 ## The tool being built
 
-`dash` -- a command-line morning briefing that fetches live data from REST APIs and displays it in the terminal.
+`dashy` -- a command-line morning briefing that fetches live data from REST APIs and displays it in the terminal.
 
 ```
-$ dash
+$ dashy
 
   Location    Athens, GR (203.0.113.42)
 
@@ -43,7 +43,7 @@ Three data sources, one clean output:
   flows/        -- workflow graph (implement-issue)
   rules/        -- project rules the agents follow
 src/
-  dash/         -- the Python CLI
+  dashy/         -- the Python CLI
 tests/
 justfile        -- task runner (lint, test, fmt)
 pyproject.toml  -- project config
