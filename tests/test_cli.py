@@ -204,18 +204,47 @@ def test_dashboard_renders_time_with_evening_timestamp() -> None:
     assert "07 May 2026 23:05" in output
 
 
-def test_fetch_dashboard_data_skips_weather_when_ip_fails(
+def test_fetch_dashboard_data_falls_back_to_default_city_when_ip_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """If IP lookup fails, weather is not fetched (no city to query)."""
-    weather_called = False
+    """If IP lookup fails, weather is still fetched using the default city."""
+    monkeypatch.delenv("DASHY_DEFAULT_CITY", raising=False)
+    received_cities: list[str] = []
 
     def fake_get_ip_info() -> IPInfo | None:
         return None
 
     def fake_get_weather(city: str) -> Weather | None:
-        nonlocal weather_called
-        weather_called = True
+        received_cities.append(city)
+        return _weather()
+
+    def fake_get_headlines(feed_url: str | None = None) -> list[str]:
+        return _headlines()
+
+    monkeypatch.setattr(cli, "get_ip_info", fake_get_ip_info)
+    monkeypatch.setattr(cli, "get_weather", fake_get_weather)
+    monkeypatch.setattr(cli, "get_headlines", fake_get_headlines)
+
+    data = fetch_dashboard_data()
+
+    assert data.ip_info is None
+    assert received_cities == ["Athens"]
+    assert data.weather == _weather()
+    assert data.headlines == _headlines()
+
+
+def test_fetch_dashboard_data_default_city_overridable_via_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``DASHY_DEFAULT_CITY`` overrides the built-in fallback city."""
+    monkeypatch.setenv("DASHY_DEFAULT_CITY", "Berlin")
+    received_cities: list[str] = []
+
+    def fake_get_ip_info() -> IPInfo | None:
+        return None
+
+    def fake_get_weather(city: str) -> Weather | None:
+        received_cities.append(city)
         return None
 
     def fake_get_headlines(feed_url: str | None = None) -> list[str]:
@@ -225,12 +254,35 @@ def test_fetch_dashboard_data_skips_weather_when_ip_fails(
     monkeypatch.setattr(cli, "get_weather", fake_get_weather)
     monkeypatch.setattr(cli, "get_headlines", fake_get_headlines)
 
+    fetch_dashboard_data()
+
+    assert received_cities == ["Berlin"]
+
+
+def test_fetch_dashboard_data_weather_failure_does_not_suppress_other_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When weather fallback returns None, IP and headlines still display."""
+    monkeypatch.delenv("DASHY_DEFAULT_CITY", raising=False)
+
+    def fake_get_ip_info() -> IPInfo | None:
+        return None
+
+    def fake_get_weather(city: str) -> Weather | None:
+        return None
+
+    def fake_get_headlines(feed_url: str | None = None) -> list[str]:
+        return _headlines()
+
+    monkeypatch.setattr(cli, "get_ip_info", fake_get_ip_info)
+    monkeypatch.setattr(cli, "get_weather", fake_get_weather)
+    monkeypatch.setattr(cli, "get_headlines", fake_get_headlines)
+
     data = fetch_dashboard_data()
 
     assert data.ip_info is None
     assert data.weather is None
-    assert data.headlines == []
-    assert weather_called is False
+    assert data.headlines == _headlines()
 
 
 def test_fetch_dashboard_data_uses_ip_city_for_weather(

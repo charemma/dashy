@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -20,6 +21,19 @@ from dashy.weather import get_weather
 _UNAVAILABLE = "[dim]unavailable[/dim]"
 _DATETIME_FORMAT = "%d %b %Y %H:%M"
 _PANEL_BORDER_STYLE = "cyan"
+_DEFAULT_CITY = "Athens"
+_DEFAULT_CITY_ENV = "DASHY_DEFAULT_CITY"
+
+
+def _resolve_default_city() -> str:
+    """Return the fallback weather city.
+
+    Honours the ``DASHY_DEFAULT_CITY`` environment variable so users on
+    different machines can override the built-in default without code
+    changes.
+    """
+    override = os.environ.get(_DEFAULT_CITY_ENV, "").strip()
+    return override or _DEFAULT_CITY
 
 
 @dataclass(frozen=True)
@@ -35,12 +49,14 @@ class DashboardData:
 def fetch_dashboard_data() -> DashboardData:
     """Fetch IP, weather, and headlines for the dashboard.
 
-    All errors are absorbed by the underlying modules. Weather is only
-    fetched when an IP/city is available -- there is no useful fallback
-    city to query otherwise.
+    Each source is independent: a failure in one does not suppress the
+    others. When IP lookup fails, weather falls back to a default city
+    (``DASHY_DEFAULT_CITY`` env var, otherwise the built-in default) so
+    the user still sees weather data for a sensible location.
     """
     ip_info = get_ip_info()
-    weather = get_weather(ip_info.city) if ip_info is not None else None
+    city = ip_info.city if ip_info is not None else _resolve_default_city()
+    weather = get_weather(city)
     headlines = get_headlines()
     return DashboardData(
         ip_info=ip_info,
