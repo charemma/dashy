@@ -1,0 +1,40 @@
+# Version control
+.git
+.gitignore
+
+# CI / project metadata not needed at build time
+.github
+.kuro
+docs
+
+# Python build artifacts and caches
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist
+build
+
+# Tooling caches
+.mypy_cache
+.ruff_cache
+.pytest_cache
+
+# Local environments
+.venv
+.direnv
+.envrc
+.env
+
+# Tests are not needed in the runtime image
+tests
+
+# Nix files only relevant for the dev shell
+flake.nix
+flake.lock
+result
+
+# Editor / OS noise
+.idea
+.vscode
+.DS_Store
